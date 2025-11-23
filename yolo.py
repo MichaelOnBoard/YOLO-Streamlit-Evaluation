@@ -4,169 +4,202 @@ import numpy
 import os
 import plotly.express as px
 import plotly.graph_objects as go
+from table.yolo_tabel import accuracy_table, efficiency_table, class_emotions_table
+from utils.model_order import model_order
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
-csv_path = os.path.join(base_dir, "data", "Testing Results-Final-Verdict.csv")
+overall_path = os.path.join(base_dir, "data", "Testing Results-Final-Verdict.csv")
+detailed_path = os.path.join(base_dir, "data", "yolo_metrics_detailed.csv")
 
 st.set_page_config(page_title="Analisis Performa YOLO", layout="wide")
 
-df = pd.read_csv(csv_path)
+df = pd.read_csv(overall_path)
 
-st.subheader("Tabel Mentah Performa Arsitektur Model")
+st.subheader("Tabel Raw Data Performa Arsitektur Model")
 st.write(df)
 
 st.subheader("Tabel Akurasi Model")
 
 accuracy_data = df[
-    ["Model", "Version", "Size", "Precision", "Recall", "F1-Score", "mAP50", "mAP50-95"]
+    [
+        "Index",
+        "Model",
+        "Precision",
+        "Recall",
+        "F1-Score",
+        "mAP50",
+        "mAP50-95",
+    ]
 ].copy()
 
-selected_column = st.selectbox("Pilih kolom untuk sorting:", accuracy_data.columns)
+a1, a2, a3 = st.columns(3)
 
-sort_type = st.selectbox(
-    "Mode Sort:", ["Terkecil → Terbesar", "Terbesar → Terkecil", "A → Z", "Z → A"]
-)
+with a1:
+    selected_models = st.multiselect(
+        "Filter Model:",
+        accuracy_data["Model"].unique(),
+        key="sl_accuracy_filter_model",
+    )
+
+    if selected_models:
+        accuracy_data = accuracy_data[accuracy_data["Model"].isin(selected_models)]
+
+with a2:
+    selected_column = st.selectbox(
+        "Pilih kolom untuk sorting:", accuracy_data.columns, key="sl_accuracy_column"
+    )
+
+with a3:
+    sort_type = st.selectbox(
+        "Mode Sort:",
+        ["Terkecil → Terbesar", "Terbesar → Terkecil", "A → Z", "Z → A"],
+        key="sl_accuracy_sort",
+    )
 
 match sort_type:
     case "Terkecil → Terbesar":
-        sorted_df = accuracy_data.sort_values(by=selected_column, ascending=True)
+        accuracy_data = accuracy_data.sort_values(by=selected_column, ascending=True)
 
     case "Terbesar → Terkecil":
-        sorted_df = accuracy_data.sort_values(by=selected_column, ascending=False)
+        accuracy_data = accuracy_data.sort_values(by=selected_column, ascending=False)
 
     case "A → Z":
-        sorted_df = accuracy_data.sort_values(
+        accuracy_data = accuracy_data.sort_values(
             by=selected_column, ascending=True, key=lambda x: x.astype(str)
         )
 
     case "Z → A":
-        sorted_df = accuracy_data.sort_values(
+        accuracy_data = accuracy_data.sort_values(
             by=selected_column, ascending=False, key=lambda x: x.astype(str)
         )
 
-numerical_cols = ["Precision", "Recall", "F1-Score", "mAP50", "mAP50-95"]
-
-df_display = sorted_df.copy()
-
-for col in numerical_cols:
-    max_val = df_display[col].max()
-
-    df_display[col] = df_display[col].apply(
-        lambda x: f"<b>{x}</b>" if x == max_val else x
-    )
-
-fig_table = go.Figure(
-    data=[
-        go.Table(
-            header=dict(
-                values=list(df_display.columns),
-                fill_color="lightgray",
-                align="center",
-                font=dict(size=15, color="black"),
-                height=40,
-            ),
-            cells=dict(
-                values=[df_display[col] for col in df_display.columns],
-                fill_color="white",
-                font=dict(size=12, color="black"),
-                height=35,
-                format=["html"] * len(df_display.columns),
-            ),
-        )
-    ]
-)
-
-fig_table.update_layout(height=800)
-
-st.plotly_chart(fig_table, width="stretch")
+accuracy_table(accuracy_data)
 
 st.subheader("Tabel Efficiency Model")
 
 efficiency_data = df[
     [
+        "Index",
         "Model",
-        "Version",
-        "Size",
         "Preprocessing (ms)",
         "Inference (ms)",
         "Postprocessing (ms)",
+        "Total Time (ms)",
         "FPS",
         "Training Time",
     ]
 ].copy()
 
-selected_column = st.selectbox(
-    "Pilih kolom untuk sorting:", efficiency_data.columns, key="sort_col_efficiency"
-)
+e1, e2, e3 = st.columns(3)
 
-sort_type = st.selectbox(
-    "Mode Sort:",
-    ["Terkecil → Terbesar", "Terbesar → Terkecil", "A → Z", "Z → A"],
-    key="select_efficiency",
-)
+with e1:
+    selected_models = st.multiselect(
+        "Filter Model:",
+        efficiency_data["Model"].unique(),
+        key="sl_efficiency_filter_model",
+    )
+
+    if selected_models:
+        efficiency_data = efficiency_data[
+            efficiency_data["Model"].isin(selected_models)
+        ]
+
+with e2:
+    selected_column = st.selectbox(
+        "Pilih kolom untuk sorting:", efficiency_data.columns, key="sl_efficiency_col"
+    )
+
+with e3:
+    sort_type = st.selectbox(
+        "Sort:",
+        ["Terkecil → Terbesar", "Terbesar → Terkecil", "A → Z", "Z → A"],
+        key="sl_efficiency_sort",
+    )
 
 match sort_type:
     case "Terkecil → Terbesar":
-        sorted_df = efficiency_data.sort_values(by=selected_column, ascending=True)
+        efficiency_data = efficiency_data.sort_values(
+            by=selected_column, ascending=True
+        )
 
     case "Terbesar → Terkecil":
-        sorted_df = efficiency_data.sort_values(by=selected_column, ascending=False)
+        efficiency_data = efficiency_data.sort_values(
+            by=selected_column, ascending=False
+        )
 
     case "A → Z":
-        sorted_df = efficiency_data.sort_values(
+        efficiency_data = efficiency_data.sort_values(
             by=selected_column, ascending=True, key=lambda x: x.astype(str)
         )
 
     case "Z → A":
-        sorted_df = efficiency_data.sort_values(
+        efficiency_data = efficiency_data.sort_values(
             by=selected_column, ascending=False, key=lambda x: x.astype(str)
         )
 
+efficiency_table(efficiency_data)
 
-df_display = sorted_df.copy()
+st.subheader("Tabel mAP50 per Kelas Emosi")
 
-max_numerical_cols = ["FPS"]
+detailed_df = pd.read_csv(detailed_path)
 
-for col in max_numerical_cols:
-    max_val = df_display[col].max()
-
-    df_display[col] = df_display[col].apply(
-        lambda x: f"<b>{x}</b>" if x == max_val else x
-    )
-
-min_numerical_cols = ["Preprocessing (ms)", "Inference (ms)", "Postprocessing (ms)"]
-
-for col in min_numerical_cols:
-    min_val = df_display[col].min()
-
-    df_display[col] = df_display[col].apply(
-        lambda x: f"<b>{x}</b>" if x == min_val else x
-    )
-
-fig_table = go.Figure(
-    data=[
-        go.Table(
-            header=dict(
-                values=list(df_display.columns),
-                fill_color="lightgray",
-                align="center",
-                font=dict(size=15, color="black"),
-                height=40,
-            ),
-            cells=dict(
-                values=[df_display[col] for col in df_display.columns],
-                fill_color="white",
-                font=dict(size=12, color="black"),
-                height=35,
-                format=["html"] * len(df_display.columns),
-            ),
-        )
-    ]
+pivot_detailed_df = detailed_df.pivot_table(
+    index="Model", columns="Class", values="mAP50"
 )
 
-fig_table.update_layout(height=800)
+pivot_detailed_df = pivot_detailed_df.reset_index()
+pivot_detailed_df = pivot_detailed_df.drop(columns=["index"], errors="ignore")
 
-st.plotly_chart(fig_table, width="stretch")
+detailed_sorted = model_order(pivot_detailed_df)
+
+c1, c2, c3 = st.columns(3)
+
+with c1:
+    selected_models = st.multiselect(
+        "Filter Model:",
+        detailed_sorted["Model"].unique(),
+        key="sl_detailed_filter_model",
+    )
+
+    if selected_models:
+        detailed_sorted = detailed_sorted[
+            detailed_sorted["Model"].isin(selected_models)
+        ]
+
+with c2:
+    selected_column = st.selectbox(
+        "Pilih kolom untuk sorting:", detailed_sorted.columns, key="sl_detailed_col"
+    )
+
+with c3:
+    sort_type = st.selectbox(
+        "Sort:",
+        ["Terkecil → Terbesar", "Terbesar → Terkecil", "A → Z", "Z → A"],
+        key="sl_detailed_sort",
+    )
+
+match sort_type:
+    case "Terkecil → Terbesar":
+        detailed_sorted = detailed_sorted.sort_values(
+            by=selected_column, ascending=True
+        )
+
+    case "Terbesar → Terkecil":
+        detailed_sorted = detailed_sorted.sort_values(
+            by=selected_column, ascending=False
+        )
+
+    case "A → Z":
+        detailed_sorted = detailed_sorted.sort_values(
+            by=selected_column, ascending=True, key=lambda x: x.astype(str)
+        )
+
+    case "Z → A":
+        detailed_sorted = detailed_sorted.sort_values(
+            by=selected_column, ascending=False, key=lambda x: x.astype(str)
+        )
+
+class_emotions_table(detailed_sorted)
 
 st.subheader("Chart Perbandingan Akurasi Arsitekur Model: mAP50 & mAP50-95")
 
@@ -183,9 +216,8 @@ map_comparison_chart = px.bar(
     y="Nilai Score",
     color="Metrik",
     barmode="group",
-    text_auto=".3f",
     color_discrete_map={"mAP50": "red", "mAP50-95": "blue"},
-    height=400,
+    height=700,
 )
 
 map_comparison_chart.update_layout(xaxis_title="Model", yaxis_title="Nilai mAP")
