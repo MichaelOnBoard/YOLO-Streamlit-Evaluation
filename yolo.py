@@ -1,15 +1,35 @@
 import streamlit as st
-import pandas as pd
-from pathlib import Path
-from pages.tabel_page import table_sections
-from pages.chart_page import chart_sections
-from utils.download_data import download_to_excel
-from utils.load_data import load_main_data
 
+from reports.chart_page import chart_sections
+from reports.tabel_page import table_sections
+from utils.download_data import download_to_excel
+from utils.load_data import load_logo, load_main_data
 
 st.set_page_config(page_title="Analisis Performa YOLO", layout="wide")
 
-overall_data, all_class_data, logo_path = load_main_data()
+st.set_page_config(
+    page_title="Analisis Performa YOLO",
+    layout="wide",
+    initial_sidebar_state="expanded",
+)
+
+logo_path = load_logo()
+
+st.sidebar.image(str(logo_path), width=250)
+
+dataset = st.sidebar.selectbox(
+    "Pilih Dataset:", ["Human Face Emotions Computer Vision Model", "FER2013"]
+)
+
+# page = st.sidebar.selectbox("Pilih Halaman:", ["📊 Tabel", "📈 Chart", "🧪 Demo"])
+page = st.sidebar.selectbox("Pilih Halaman:", ["📊 Tabel", "📈 Chart"])
+
+if dataset == "Human Face Emotions Computer Vision Model":
+    dataset = "human-face-emotion-computer-vision-model"
+elif dataset == "FER2013":
+    dataset = "fer-2013"
+
+overall_data, all_class_data = load_main_data(dataset)
 
 if overall_data is None or all_class_data is None:
     st.error("Gagal memuat data. Pastikan file CSV tersedia.")
@@ -27,21 +47,12 @@ st.download_button(
     mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
 )
 
-st.set_page_config(
-    page_title="Analisis Performa YOLO",
-    layout="wide",
-    initial_sidebar_state="expanded",
-)
-
-st.sidebar.image(str(logo_path), width=250)
-
-page = st.sidebar.selectbox("Pilih Halaman:", ["📊 Tabel", "📈 Chart", "🧪 Demo"])
 
 if page == "📊 Tabel":
-    table_sections(overall_data, all_class_data)
+    table_sections(overall_data, all_class_data, dataset)
 
 elif page == "📈 Chart":
-    chart_sections(overall_data, all_class_data)
+    chart_sections(overall_data, all_class_data, dataset)
 
-elif page == "🧪 Demo":
-    st.write("Ini halaman Demo")
+# elif page == "🧪 Demo":
+#     st.write("Ini halaman Demo")

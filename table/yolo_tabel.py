@@ -1,5 +1,6 @@
-import streamlit as st
+import pandas as pd
 import plotly.graph_objects as go
+import streamlit as st
 
 
 def accuracy_table(data):
@@ -56,7 +57,6 @@ def efficiency_table(data):
         "Postprocessing (ms)",
         "Total Time (ms)",
         "FPS",
-        "Training Time",
     ]
 
     display = data.copy()
@@ -66,6 +66,18 @@ def efficiency_table(data):
         display[col] = display[col].apply(
             lambda x: f"<b>{x}</b>" if x == target_val else x
         )
+
+    training_seconds = pd.to_timedelta(data["Training Time"]).dt.total_seconds()
+    min_time = training_seconds.min()
+
+    display["Training Time"] = display.apply(
+        lambda row: (
+            f"<b>{row['Training Time']}</b>"
+            if pd.to_timedelta(row["Training Time"]).total_seconds() == min_time
+            else row["Training Time"]
+        ),
+        axis=1,
+    )
 
     row_colors = ["#FFFFFF" if i % 2 == 0 else "#F7F7F7" for i in range(len(display))]
 
@@ -101,17 +113,21 @@ def efficiency_table(data):
     st.plotly_chart(fig_table, width="stretch")
 
 
-def class_emotions_table(data):
-    cols = [
-        "anger",
-        "content",
-        "disgust",
-        "fear",
-        "happy",
-        "neutral",
-        "sad",
-        "surprise",
-    ]
+def class_emotions_table(data, dataset):
+    cols = []
+    if dataset == "human-face-emotion-computer-vision-model":
+        cols = [
+            "anger",
+            "content",
+            "disgust",
+            "fear",
+            "happy",
+            "neutral",
+            "sad",
+            "surprise",
+        ]
+    elif dataset == "fer-2013":
+        cols = ["angry", "disgust", "fear", "happy", "neutral", "sad", "surprise"]
 
     display = data.copy()
 

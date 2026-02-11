@@ -1,32 +1,41 @@
-from typing import Optional
-import streamlit as st
-import pandas as pd
 from pathlib import Path
+from typing import Optional
+
+import pandas as pd
+import streamlit as st
 
 
 @st.cache_data
-def load_main_data():
+def load_main_data(dataset: str):
     base_dir = Path(__file__).resolve().parent.parent
 
-    overall_path = base_dir / "data" / "Testing-Results-LAST_ASLI.csv"
-    all_class_path = base_dir / "data" / "yolo_metrics_detailed.csv"
-    logo_path = base_dir / "assets" / "binus.png"
+    overall_path = base_dir / "data" / dataset / "Testing-Results-LAST_ASLI.csv"
+    all_class_path = base_dir / "data" / dataset / "yolo_metrics_detailed.csv"
 
     try:
         df_overall = pd.read_csv(overall_path)
         df_all_class = pd.read_csv(all_class_path)
 
-        return df_overall, df_all_class, logo_path
+        return df_overall, df_all_class
 
     except Exception as err:
         st.error(f"File data tidak ditemukan: {err}")
-        return None, None, None
+        return None, None
 
 
 @st.cache_data
-def load_training_logs() -> Optional[pd.DataFrame]:
+def load_logo():
     base_dir = Path(__file__).resolve().parent.parent
-    data_path = base_dir / "data"
+
+    logo_path = base_dir / "assets" / "binus.png"
+
+    return logo_path
+
+
+@st.cache_data
+def load_training_logs(dataset: str) -> Optional[pd.DataFrame]:
+    base_dir = Path(__file__).resolve().parent.parent
+    data_path = base_dir / "data" / dataset
 
     csv_files = list(data_path.glob("*_results.csv"))
 
@@ -72,4 +81,7 @@ def get_variant_group(model_name: str):
     elif variant_char in ["l", "c"]:
         return "Large & Compact (l/c)"
     else:
+        return "Lainnya"
+        return "Lainnya"
+        return "Lainnya"
         return "Lainnya"
